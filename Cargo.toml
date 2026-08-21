@@ -1,0 +1,23 @@
+[workspace]
+resolver = "3"
+members = [
+    "crates/collections",
+    "crates/command",
+    "crates/command-palette",
+    "crates/preview",
+    "crates/view",
+    "crates/workspace",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+authors = ["SpuerMomonga"]
+license = "AGPL-3.0"
+
+[workspace.dependencies]
+
+gpui = { git = "https://github.com/zed-industries/zed" }
+gpui-component = { git = "https://github.com/longbridge/gpui-component" }
+gpui_platform = { git = "https://github.com/zed-industries/zed" }
+rustc-hash = "2.1.3"
