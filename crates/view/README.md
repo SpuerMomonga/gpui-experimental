@@ -1,3 +1,25 @@
+## API
+
+```rust
+
+pub trait ViewContext {
+    fn open_view<V: 'static + ViewDelegate>(
+        options: ViewOptions, 
+        view: impl FnOnce(&mut Window, &mut App) -> Entity<V>
+    ) -> anyhow::Result<ViewHandle<V>>;
+}
+
+impl ViewContext for App {
+    fn open_view<V: 'static + ViewDelegate>(
+        options: ViewOptions, 
+        view: impl FnOnce(&mut Window, &mut App) -> Entity<V>
+    ) -> anyhow::Result<ViewHandle<V>> {
+        todo!()
+    }
+}
+
+```
+
 ## Examples
 
 ```rust
