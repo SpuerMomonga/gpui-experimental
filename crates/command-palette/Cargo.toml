@@ -1,5 +1,5 @@
 [package]
-name = "command_palette"
+name = "command-palette"
 
 version.workspace = true
 edition.workspace = true
@@ -7,3 +7,4 @@ authors.workspace = true
 license.workspace = true
 
 [dependencies]
+gpui-kit.workspace = true

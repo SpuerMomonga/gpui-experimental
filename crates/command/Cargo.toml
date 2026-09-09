@@ -6,13 +6,12 @@ edition.workspace = true
 authors.workspace = true
 license.workspace = true
 
-[dependencies]
-anyhow = { workspace = true }
-collections = { workspace = true }
-macros = { workspace = true }
-gpui = { workspace = true }
-serde = { workspace = true }
-serde_json = { workspace = true }
+[lib]
+path = "src/command.rs"
+doctest = false
 
-[dev-dependencies]
-gpui = { workspace = true, features = ["test-support"] }
+[dependencies]
+anyhow.workspace = true
+gpui-kit.workspace = true
+serde.workspace = true
+serde_json.workspace = true

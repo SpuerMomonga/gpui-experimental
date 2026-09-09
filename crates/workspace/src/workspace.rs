@@ -1,14 +1,14 @@
-use std::sync::Arc;
+use std::{collections::HashMap, sync::Arc};
 
-use anyhow::Ok;
-use collections::HashSet;
-use gpui::{
-    App, AppContext, Bounds, Context, Entity, Global, IntoElement, Render, Task, WeakEntity,
-    Window, WindowBounds, WindowKind, WindowOptions, div, prelude::*, px, rgb, size,
+use gpui_kit::{
+    App, AppContext, Bounds, Context, Entity, Global, IntoElement, Render, Task, WeakEntity, Window, WindowBounds,
+    WindowKind, WindowOptions, div, prelude::*, px, rgb, size,
 };
-use gpui_component::{Root, Sizable, input::InputState};
+use gpui_kit::component::{Root, Sizable, input::InputState};
 
-pub fn init(cx: &mut App) {}
+mod item;
+
+pub use item::*;
 
 pub struct AppState {
     pub workspace_store: Entity<WorkspaceStore>,
@@ -20,8 +20,7 @@ impl AppState {
     }
 
     pub fn try_global(cx: &App) -> Option<Arc<Self>> {
-        cx.try_global::<GlobalAppState>()
-            .map(|state| state.0.clone())
+        cx.try_global::<GlobalAppState>().map(|state| state.0.clone())
     }
 
     pub fn set_global(state: Arc<AppState>, cx: &mut App) {
@@ -34,26 +33,17 @@ struct GlobalAppState(Arc<AppState>);
 impl Global for GlobalAppState {}
 
 pub struct WorkspaceStore {
-    main_workspace: Option<(gpui::AnyWindowHandle, WeakEntity<Workspace>)>,
-    workspaces: HashSet<(gpui::AnyWindowHandle, WeakEntity<Workspace>)>,
+    workspaces: HashMap<WorkspaceId, (gpui_kit::AnyWindowHandle, WeakEntity<Workspace>)>,
 }
 
 impl WorkspaceStore {
-    pub fn new() -> Self {
-        Self {
-            main_workspace: None,
-            workspaces: Default::default(),
-        }
-    }
-
-    pub fn main_workspace(&self) -> Option<&WeakEntity<Workspace>> {
-        self.main_workspace.as_ref().map(|(_, weak)| weak)
-    }
-
-    pub fn workspaces(&self) -> impl Iterator<Item = &WeakEntity<Workspace>> {
-        self.workspaces.iter().map(|(_, weak)| weak)
+    pub fn new(cx: &mut App) -> Self {
+        Self { workspaces: Default::default() }
     }
 }
+
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub struct WorkspaceId(i64);
 
 pub struct Workspace {
     pub(crate) input_state: Entity<InputState>,
@@ -61,16 +51,15 @@ pub struct Workspace {
 
 impl Workspace {
     pub fn new(app_state: Arc<AppState>, window: &mut Window, cx: &mut Context<Self>) -> Self {
-        let input_state =
-            cx.new(|cx| InputState::new(window, cx).placeholder("Search for apps and commands..."));
+        let input_state = cx.new(|cx| InputState::new(window, cx).placeholder("Search for apps and commands..."));
 
         let weak_handle = cx.entity().downgrade();
 
         let any_window_handle = window.window_handle();
         app_state.workspace_store.update(cx, |store, _| {
-            store
-                .workspaces
-                .insert((any_window_handle, weak_handle.clone()))
+            let id = WorkspaceId(store.next_id);
+            store.next_id += 1;
+            store.workspaces.insert(id, (any_window_handle, weak_handle.clone()));
         });
 
         Self { input_state }
@@ -78,8 +67,7 @@ impl Workspace {
 
     pub fn new_local(app_state: Arc<AppState>, cx: &mut App) -> Task<anyhow::Result<()>> {
         let display_id = cx.primary_display().map(|display| display.id());
-        let bounds =
-            WindowBounds::Windowed(Bounds::centered(display_id, size(px(750.), px(475.)), cx));
+        let bounds = WindowBounds::Windowed(Bounds::centered(display_id, size(px(750.), px(475.)), cx));
 
         cx.spawn(async move |cx| {
             let options = WindowOptions {
@@ -106,7 +94,7 @@ impl Workspace {
 }
 
 impl Render for Workspace {
-    fn render(&mut self, _window: &mut Window, _cx: &mut Context<Self>) -> impl IntoElement {
+    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         div()
             .size_full()
             .flex()
@@ -116,18 +104,22 @@ impl Render for Workspace {
             .child(
                 div()
                     .w_full()
-                    .p_2()
+                    .h(px(56.))
+                    .flex()
+                    .items_center()
+                    .px_2()
                     .border_b_1()
                     .border_color(rgb(0xCCCCCC))
                     .child(
-                        gpui_component::input::Input::new(&self.input_state)
+                        gpui_kit::component::input::Input::new(&self.input_state)
                             .large()
                             .appearance(false)
-                            .cleanable(true),
+                            .cleanable(true)
+                            .flex_1(),
                     ),
             )
             // view
-            .child(div().flex_1().w_full())
+            .child(div().id("workspace-content").flex_1().w_full())
             .child(
                 div()
                     .w_full()

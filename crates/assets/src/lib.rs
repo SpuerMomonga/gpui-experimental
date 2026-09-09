@@ -1,4 +1,4 @@
-use gpui::{AssetSource, Result, SharedString};
+use gpui_kit::{AssetSource, Result, SharedString};
 use rust_embed::RustEmbed;
 
 #[derive(RustEmbed)]
@@ -20,18 +20,15 @@ impl AssetSource for Assets {
             return Ok(Some(file.data));
         }
 
-        gpui_component_assets::Assets.load(path)
+        gpui_kit::assets::Assets.load(path)
     }
 
     fn list(&self, path: &str) -> Result<Vec<SharedString>> {
         let mut result: Vec<SharedString> = Self::iter()
-            .filter_map(|p| {
-               p.starts_with(path)
-                    .then(|| SharedString::from(p.to_string()))
-            })
+            .filter_map(|p| p.starts_with(path).then(|| SharedString::from(p.to_string())))
             .collect();
-        
-        if let Ok(component_assets) = gpui_component_assets::Assets.list(path) {
+
+        if let Ok(component_assets) = gpui_kit::assets::Assets.list(path) {
             result.extend(component_assets);
         }
 

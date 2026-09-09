@@ -1,23 +1,27 @@
+use gpui_kit::component::theme::{Theme, ThemeMode};
+use gpui_kit::{Application, platform};
+
 use assets::Assets;
-use gpui::{AppContext as _, Application};
-use gpui_component::theme::{Theme, ThemeMode};
-use std::sync::Arc;
-use workspace::{AppState, Workspace, WorkspaceStore};
+use ipc::server::prepare_socket;
 
 fn main() {
-    Application::with_platform(gpui_platform::current_platform(false))
+    ktracing::init();
+
+    if let Err(_) = prepare_socket() {
+        // TODO 通过ipc处理命令并直接返回
+        return;
+    }
+
+    Application::with_platform(platform::current_platform(false))
         .with_assets(Assets)
         .run(move |cx| {
-            gpui_component::init(cx);
+            i18n::init("en");
+            gpui_kit::init(cx);
             Theme::change(ThemeMode::Light, None, cx);
 
             command::init(cx);
 
-            let workspace_store = cx.new(|_cx| WorkspaceStore::new());
-
-            let app_state = Arc::new(AppState { workspace_store });
-            AppState::set_global(app_state.clone(), cx);
-
-            Workspace::new_local(app_state, cx).detach();
+            command_palette::init(cx);
+            clipboard::init(cx);
         });
 }

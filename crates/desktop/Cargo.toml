@@ -6,11 +6,24 @@ edition.workspace = true
 authors.workspace = true
 license.workspace = true
 
-[dependencies]
-assets = { workspace = true }
-command = { workspace = true }
-workspace = { workspace = true }
+[[bin]]
+name = "keyway"
+path = "src/main.rs"
 
-gpui = { workspace = true }
-gpui-component = { workspace = true }
-gpui_platform = { workspace = true }
+[dependencies]
+
+#
+# Workspace member crates
+#
+
+assets.workspace = true
+command.workspace = true
+command-palette.workspace = true
+workspace.workspace = true
+
+#
+# External crates
+#
+
+anyhow.workspace = true
+gpui-kit.workspace = true

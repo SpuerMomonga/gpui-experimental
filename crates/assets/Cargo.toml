@@ -7,7 +7,6 @@ authors.workspace = true
 license.workspace = true
 
 [dependencies]
-anyhow = { workspace = true }
-gpui = { workspace = true }
-gpui-component-assets = { workspace = true }
-rust-embed = { workspace = true }
+anyhow.workspace = true
+gpui-kit.workspace = true
+rust-embed.workspace = true
