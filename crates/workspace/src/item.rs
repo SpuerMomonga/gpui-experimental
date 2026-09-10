@@ -1,7 +1,5 @@
 use gpui_kit::{Context, EventEmitter, Focusable, Render, Task};
 
-use gpui_kit::component::{Dock};
-
 pub trait Item: Focusable + EventEmitter<Self::Event> + Render + Sized {
     type Event;
 

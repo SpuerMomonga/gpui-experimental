@@ -1,14 +1,24 @@
+use std::rc::Rc;
 use std::{collections::HashMap, sync::Arc};
 
-use gpui_kit::{
-    App, AppContext, Bounds, Context, Entity, Global, IntoElement, Render, Task, WeakEntity, Window, WindowBounds,
-    WindowKind, WindowOptions, div, prelude::*, px, rgb, size,
+use gpui_kit::component::{
+    Root,
+    dock::{DockArea, DockSkin},
 };
-use gpui_kit::component::{Root, Sizable, input::InputState};
+use gpui_kit::{
+    App, AppContext, Bounds, Context, Entity, Global, IntoElement, Render, Task, WeakEntity,
+    Window, WindowBounds, WindowKind, WindowOptions, div, prelude::*, px, rgb, size,
+};
 
+use uuid::Uuid;
+
+mod actions_bar;
 mod item;
+mod title_bar;
 
+pub use actions_bar::*;
 pub use item::*;
+pub use title_bar::*;
 
 pub struct AppState {
     pub workspace_store: Entity<WorkspaceStore>,
@@ -20,7 +30,8 @@ impl AppState {
     }
 
     pub fn try_global(cx: &App) -> Option<Arc<Self>> {
-        cx.try_global::<GlobalAppState>().map(|state| state.0.clone())
+        cx.try_global::<GlobalAppState>()
+            .map(|state| state.0.clone())
     }
 
     pub fn set_global(state: Arc<AppState>, cx: &mut App) {
@@ -38,7 +49,9 @@ pub struct WorkspaceStore {
 
 impl WorkspaceStore {
     pub fn new(cx: &mut App) -> Self {
-        Self { workspaces: Default::default() }
+        Self {
+            workspaces: Default::default(),
+        }
     }
 }
 
@@ -46,28 +59,40 @@ impl WorkspaceStore {
 pub struct WorkspaceId(i64);
 
 pub struct Workspace {
-    pub(crate) input_state: Entity<InputState>,
+    title_bar: Entity<TitleBar>,
+    center: Entity<DockArea>,
+    skin: Rc<DockSkin>,
+    actions_bar: Entity<ActionsBar>,
 }
 
 impl Workspace {
     pub fn new(app_state: Arc<AppState>, window: &mut Window, cx: &mut Context<Self>) -> Self {
-        let input_state = cx.new(|cx| InputState::new(window, cx).placeholder("Search for apps and commands..."));
+        let (dock_area, skin) = DockSkin::dock_area("workspace-dock", Some(1), window, cx);
+
+        let title_bar = cx.new(|_cx| TitleBar::new());
+        let actions_bar = cx.new(|_cx| ActionsBar::new());
 
         let weak_handle = cx.entity().downgrade();
-
         let any_window_handle = window.window_handle();
         app_state.workspace_store.update(cx, |store, _| {
-            let id = WorkspaceId(store.next_id);
-            store.next_id += 1;
-            store.workspaces.insert(id, (any_window_handle, weak_handle.clone()));
+            let id = WorkspaceId(Uuid::new_v4().as_u64_pair().0 as i64);
+            store
+                .workspaces
+                .insert(id, (any_window_handle, weak_handle.clone()));
         });
 
-        Self { input_state }
+        Self {
+            title_bar,
+            center: dock_area,
+            skin,
+            actions_bar,
+        }
     }
 
     pub fn new_local(app_state: Arc<AppState>, cx: &mut App) -> Task<anyhow::Result<()>> {
         let display_id = cx.primary_display().map(|display| display.id());
-        let bounds = WindowBounds::Windowed(Bounds::centered(display_id, size(px(750.), px(475.)), cx));
+        let bounds =
+            WindowBounds::Windowed(Bounds::centered(display_id, size(px(750.), px(475.)), cx));
 
         cx.spawn(async move |cx| {
             let options = WindowOptions {
@@ -96,43 +121,16 @@ impl Workspace {
 impl Render for Workspace {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         div()
+            .relative()
             .size_full()
             .flex()
             .flex_col()
-            .bg(rgb(0xFFFFFF))
+            .gap_0()
             .overflow_hidden()
-            .child(
-                div()
-                    .w_full()
-                    .h(px(56.))
-                    .flex()
-                    .items_center()
-                    .px_2()
-                    .border_b_1()
-                    .border_color(rgb(0xCCCCCC))
-                    .child(
-                        gpui_kit::component::input::Input::new(&self.input_state)
-                            .large()
-                            .appearance(false)
-                            .cleanable(true)
-                            .flex_1(),
-                    ),
-            )
-            // view
-            .child(div().id("workspace-content").flex_1().w_full())
-            .child(
-                div()
-                    .w_full()
-                    .flex()
-                    .flex_row()
-                    .justify_between()
-                    .px_2()
-                    .border_t_1()
-                    .border_color(rgb(0xCCCCCC))
-                    // title
-                    .child(div())
-                    // actions button and action dropdown
-                    .child(div()),
-            )
+            .child(self.title_bar.clone())
+            .child(div().flex_1().min_h_0().child(self.center.clone()))
+            .child(self.actions_bar.clone())
     }
 }
+
+pub fn with_active_or_primary_workspace() {}
